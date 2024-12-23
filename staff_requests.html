@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة موظف الطلبات</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #e9ecef;
+        }
+
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .request-type {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .request-type.donation {
+            background: #28a745;
+            color: white;
+        }
+
+        .request-type.request {
+            background: #dc3545;
+            color: white;
+        }
+
+        .request-details {
+            margin-bottom: 1rem;
+        }
+
+        .request-details p {
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .status-pending {
+            background: #ffc107;
+            color: black;
+        }
+
+        .status-approved {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-rejected {
+            background: #dc3545;
+            color: white;
+        }
+
+        .no-requests {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            color: #666;
+        }
+
+        .search-bar {
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>إدارة طلبات التبرع بالدم</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="nav-tabs">
+            <button class="tab-btn active" data-tab="pending">الطلبات المعلقة</button>
+            <button class="tab-btn" data-tab="approved">الطلبات المقبولة</button>
+            <button class="tab-btn" data-tab="rejected">الطلبات المرفوضة</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="بحث بالاسم أو رقم الهاتف..." onkeyup="searchRequests()">
+            <div class="filters">
+                <select class="filter-select" id="typeFilter" onchange="filterRequests()">
+                    <option value="">نوع الطلب</option>
+                    <option value="donation">تبرع</option>
+                    <option value="request">طلب دم</option>
+                </select>
+                <select class="filter-select" id="bloodTypeFilter" onchange="filterRequests()">
+                    <option value="">فصيلة الدم</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="requestsContainer"></div>
+    </main>
+
+    <script>
+        let currentTab = 'pending';
+        let requests = [];
+        let filteredRequests = [];
+
+        function loadRequests() {
+            const storedRequests = JSON.parse(localStorage.getItem('bloodRequests')) || [];
+            const storedDonations = JSON.parse(localStorage.getItem('bloodDonations')) || [];
+            requests = [...storedRequests, ...storedDonations];
+            filterRequests();
+        }
+
+        function filterRequests() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const bloodTypeFilter = document.getElementById('bloodTypeFilter').value;
+            const searchInput = document.querySelector('.search-input').value.toLowerCase();
+
+            filteredRequests = requests.filter(request => {
+                const matchesStatus = request.status === currentTab;
+                const matchesType = !typeFilter || request.type === typeFilter;
+                const matchesBloodType = !bloodTypeFilter || request.bloodType === bloodTypeFilter;
+                const matchesSearch = !searchInput || 
+                    request.name.toLowerCase().includes(searchInput) ||
+                    request.phone.includes(searchInput);
+
+                return matchesStatus && matchesType && matchesBloodType && matchesSearch;
+            });
+
+            renderRequests();
+        }
+
+        function searchRequests() {
+            filterRequests();
+        }
+
+        function renderRequests() {
+            const container = document.getElementById('requestsContainer');
+
+            if (filteredRequests.length === 0) {
+                container.innerHTML = '<div class="no-requests">لا توجد طلبات</div>';
+                return;
+            }
+
+            container.innerHTML = filteredRequests.map(request => `
+                <div class="card">
+                    <div class="card-header">
+                        <span class="request-type ${request.type === 'donation' ? 'donation' : 'request'}">
+                            ${request.type === 'donation' ? 'تبرع بالدم' : 'طلب دم'}
+                        </span>
+                        <span class="status-badge status-${request.status}">
+                            ${getStatusText(request.status)}
+                        </span>
+                    </div>
+                    <div class="request-details">
+                        <p><strong>الاسم:</strong> ${request.name}</p>
+                        <p><strong>فصيلة الدم:</strong> ${request.bloodType}</p>
+                        <p><strong>رقم الهاتف:</strong> ${request.phone}</p>
+                        <p><strong>تاريخ الطلب:</strong> ${request.date}</p>
+                    </div>
+                    ${request.status === 'pending' ? `
+                        <div class="request-actions">
+                            <button class="btn btn-approve" onclick="handleRequest(${request.id}, 'approved')">قبول</button>
+                            <button class="btn btn-reject" onclick="handleRequest(${request.id}, 'rejected')">رفض</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function handleRequest(id, newStatus) {
+            const request = requests.find(r => r.id === id);
+            if (!request) return;
+
+            request.status = newStatus;
+            
+            if (request.type === 'donation') {
+                localStorage.setItem('bloodDonations', JSON.stringify(
+                    requests.filter(r => r.type === 'donation')
+                ));
+            } else {
+                localStorage.setItem('bloodRequests', JSON.stringify(
+                    requests.filter(r => r.type === 'request')
+                ));
+            }
+
+            if (newStatus === 'approved') {
+                const adminRequests = JSON.parse(localStorage.getItem('adminRequests')) || [];
+                adminRequests.push(request);
+                localStorage.setItem('adminRequests', JSON.stringify(adminRequests));
+            }
+
+            filterRequests();
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                pending: 'معلق',
+                approved: 'مقبول',
+                rejected: 'مرفوض'
+            };
+            return statusMap[status] || status;
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentTab = e.target.dataset.tab;
+                filterRequests();
+            });
+        });
+
+        // تحميل الطلبات عند فتح الصفحة
+        loadRequests();
+    </script>
+</body>
+</html>

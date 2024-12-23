@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة تحكم الأدمن - بنك الدم</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-title {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .blood-inventory {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .blood-type-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .blood-type {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .blood-amount {
+            color: #666;
+        }
+
+        .critical {
+            color: #dc3545;
+        }
+
+        .normal {
+            color: #28a745;
+        }
+
+        .recent-requests {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .request-card {
+            border-bottom: 1px solid #eee;
+            padding: 1rem 0;
+        }
+
+        .request-card:last-child {
+            border-bottom: none;
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .request-type {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .request-type.donation {
+            background: #28a745;
+            color: white;
+        }
+
+        .request-type.request {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        .status-completed {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-pending {
+            background: #ffc107;
+            color: black;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .actions-menu {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            flex: 1;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1>لوحة تحكم الأدمن</h1>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <h3 class="stat-title">إجمالي طلبات الدم</h3>
+                <div class="stat-value" id="totalRequests">0</div>
+            </div>
+            <div class="stat-card">
+                <h3 class="stat-title">إجمالي التبرعات</h3>
+                <div class="stat-value" id="totalDonations">0</div>
+            </div>
+            <div class="stat-card">
+                <h3 class="stat-title">العمليات المكتملة</h3>
+                <div class="stat-value" id="completedOperations">0</div>
+            </div>
+        </div>
+
+        <div class="blood-inventory">
+            <h2>مخزون الدم</h2>
+            <div class="inventory-grid" id="bloodInventory">
+                <!-- سيتم ملؤها بواسطة JavaScript -->
+            </div>
+        </div>
+
+        <div class="actions-menu">
+            <div class="action-card" onclick="location.href='staff_requests.html'">
+                <h3>إدارة الطلبات</h3>
+                <p>عرض وإدارة طلبات التبرع والاحتياج</p>
+            </div>
+            <div class="action-card" onclick="showReports()">
+                <h3>التقارير</h3>
+                <p>عرض وتصدير التقارير</p>
+            </div>
+            <div class="action-card" onclick="showSettings()">
+                <h3>الإعدادات</h3>
+                <p>إدارة إعدادات النظام</p>
+            </div>
+        </div>
+
+        <div class="recent-requests">
+            <h2>آخر الطلبات</h2>
+            <div class="filters">
+                <select class="filter-select" id="typeFilter" onchange="filterRequests()">
+                    <option value="">كل الأنواع</option>
+                    <option value="donation">تبرعات</option>
+                    <option value="request">طلبات</option>
+                </select>
+                <select class="filter-select" id="statusFilter" onchange="filterRequests()">
+                    <option value="">كل الحالات</option>
+                    <option value="completed">مكتمل</option>
+                    <option value="pending">قيد الانتظار</option>
+                </select>
+            </div>
+            <div id="recentRequests">
+                <!-- سيتم ملؤها بواسطة JavaScript -->
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let bloodInventory = {
+            'A+': 0, 'A-': 0, 'B+': 0, 'B-': 0,
+            'O+': 0, 'O-': 0, 'AB+': 0, 'AB-': 0
+        };
+        let recentRequests = [];
+
+        function loadDashboardData() {
+            // تحميل البيانات من التخزين المحلي
+            const adminRequests = JSON.parse(localStorage.getItem('adminRequests')) || [];
+            const bloodRequests = JSON.parse(localStorage.getItem('bloodRequests')) || [];
+            const bloodDonations = JSON.parse(localStorage.getItem('bloodDonations')) || [];
+
+            // تحديث الإحصائيات
+            document.getElementById('totalRequests').textContent = bloodRequests.length;
+            document.getElementById('totalDonations').textContent = bloodDonations.length;
+            document.getElementById('completedOperations').textContent = 
+                adminRequests.filter(req => req.status === 'completed').length;
+
+            // تحديث مخزون الدم
+            updateBloodInventory(adminRequests);
+
+            // تحديث آخر الطلبات
+            recentRequests = adminRequests.slice(-5);
+            renderRecentRequests();
+        }
+
+        function updateBloodInventory(requests) {
+            requests.forEach(request => {
+                if (request.type === 'donation' && request.status === 'completed') {
+                    bloodInventory[request.bloodType]++;
+                } else if (request.type === 'request' && request.status === 'completed') {
+                    bloodInventory[request.bloodType]--;
+                }
+            });
+
+            renderBloodInventory();
+        }
+
+        function renderBloodInventory() {
+            const container = document.getElementById('bloodInventory');
+            container.innerHTML = Object.entries(bloodInventory).map(([type, amount]) => `
+                <div class="blood-type-card">
+                    <div class="blood-type">${type}</div>
+                    <div class="blood-amount ${amount < 5 ? 'critical' : 'normal'}">
+                        ${amount} وحدة
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderRecentRequests() {
+            const container = document.getElementById('recentRequests');
+            const typeFilter = document.getElementById('typeFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            let filteredRequests = recentRequests;
+            if (typeFilter) {
+                filteredRequests = filteredRequests.filter(req => req.type === typeFilter);
+            }
+            if (statusFilter) {
+                filteredRequests = filteredRequests.filter(req => req.status === statusFilter);
+            }
+
+            container.innerHTML = filteredRequests.map(request => `
+                <div class="request-card">
+                    <div class="request-header">
+                        <span class="request-type ${request.type === 'donation' ? 'donation' : 'request'}">
+                            ${request.type === 'donation' ? 'تبرع بالدم' : 'طلب دم'}
+                        </span>
+                        <span class="status-badge status-${request.status}">
+                            ${getStatusText(request.status)}
+                        </span>
+                    </div>
+                    <div>
+                        <p><strong>الاسم:</strong> ${request.name}</p>
+                        <p><strong>فصيلة الدم:</strong> ${request.bloodType}</p>
+                        <p><strong>التاريخ:</strong> ${request.date}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterRequests() {
+            renderRecentRequests();
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                pending: 'قيد الانتظار',
+                completed: 'مكتمل',
+                approved: 'مقبول',
+                rejected: 'مرفوض'
+            };
+            return statusMap[status] || status;
+        }
+
+        function showReports() {
+            alert('جاري تطوير نظام التقارير');
+        }
+
+        function showSettings() {
+            alert('جاري تطوير نظام الإعدادات');
+        }
+
+        // تحميل البيانات عند فتح الصفحة
+        loadDashboardData();
+    </script>
+</body>
+</html>
